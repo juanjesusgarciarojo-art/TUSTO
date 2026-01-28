@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Tusto · Mapa</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#111111">
+
+  <style>
+    :root{
+      --pin-size: 44px;
+      --pin-stroke: rgba(0,0,0,.25);
+      --pin-fill: #e74c3c;
+      --pin-dot: #f9f1e6;
+      --ui-bg: rgba(20, 18, 16, .55);
+      --ui-fg: #ffffff;
+    }
+
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      overflow:hidden;
+      user-select:none;
+      -webkit-user-select:none;
+      touch-action:none;
+      background:#111;
+    }
+
+    .viewport{
+      position:relative;
+      width:100vw;
+      height:100vh;
+      background:#0f0f0f;
+    }
+
+    .stage{
+      position:absolute;
+      left:0;
+      top:0;
+      transform: translate(0px, 0px) scale(1);
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    .map-img{
+      display:block;
+      pointer-events:none;
+      user-drag:none;
+      -webkit-user-drag:none;
+      max-width:none;
+    }
+
+    .pins{
+      position:absolute;
+      left:0;
+      top:0;
+      pointer-events:none;
+    }
+
+    .pin{
+      position:absolute;
+      width: var(--pin-size);
+      height: var(--pin-size);
+      transform: translate(-50%, -100%) scale(var(--pinScale, 1));
+      transform-origin: 50% 100%;
+      border-radius: 999px;
+      pointer-events:auto;
+      cursor:pointer;
+      outline:none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .pin::before{
+      content:"";
+      position:absolute;
+      inset: 6px 10px 14px 10px;
+      background: var(--pin-fill);
+      border-radius: 999px;
+      box-shadow:
+        0 2px 6px rgba(0,0,0,.25),
+        inset 0 0 0 2px var(--pin-stroke);
+    }
+    .pin::after{
+      content:"";
+      position:absolute;
+      left:50%;
+      top:18px;
+      width:10px;
+      height:10px;
+      transform: translateX(-50%);
+      background: var(--pin-dot);
+      border-radius:999px;
+      box-shadow: 0 0 0 2px rgba(0,0,0,.15);
+    }
+    .pin .tip{
+      position:absolute;
+      left:50%;
+      bottom:6px;
+      width:0;
+      height:0;
+      transform: translateX(-50%);
+      border-left: 10px solid transparent;
+      border-right:10px solid transparent;
+      border-top: 16px solid var(--pin-fill);
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,.25));
+    }
+
+    .hud{
+      position:absolute;
+      left: 12px;
+      right: 12px;
+      top: 12px;
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      justify-content:space-between;
+      pointer-events:none;
+      z-index: 5;
+    }
+    .chip{
+      pointer-events:auto;
+      background: var(--ui-bg);
+      color: var(--ui-fg);
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 14px;
+      backdrop-filter: blur(6px);
+      display:flex;
+      gap: 10px;
+      align-items:center;
+    }
+    .btn{
+      pointer-events:auto;
+      border: 0;
+      background: rgba(255,255,255,.12);
+      color:#fff;
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 14px;
+      cursor:pointer;
+    }
+    .btn:active{ transform: translateY(1px); }
+    .muted{ opacity:.85; }
+
+    .hint{
+      position:absolute;
+      left:12px;
+      bottom:12px;
+      right:12px;
+      pointer-events:none;
+      display:flex;
+      justify-content:center;
+      z-index: 5;
+    }
+    .hint .chip{
+      pointer-events:none;
+      font-size: 13px;
+    }
+
+    .pin:focus-visible{
+      box-shadow: 0 0 0 3px rgba(255,255,255,.65);
+    }
+  </style>
+</head>
+<body>
+  <div class="viewport" id="viewport">
+    <div class="hud">
+      <div class="chip">
+        <strong>TUSTO</strong>
+        <span class="muted">Mapa</span>
+      </div>
+      <div class="chip">
+        <button class="btn" id="btnReset" type="button">Centrar</button>
+        <button class="btn" id="btnZoomIn" type="button">+</button>
+        <button class="btn" id="btnZoomOut" type="button">−</button>
+      </div>
+    </div>
+
+    <div class="stage" id="stage" aria-label="Mapa interactivo">
+      <img class="map-img" id="mapImg" src="assets/mapa-tusto-prototipo.png" alt="Mapa de Tusto" />
+      <div class="pins" id="pins"></div>
+    </div>
+
+    <div class="hint">
+      <div class="chip">Arrastra para moverte · Pellizca para zoom · Toca un pin para entrar</div>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // Estado dinámico del mapa
+    // =========================
+    let MAP_W = 4096;
+    let MAP_H = 2304;
+
+    const MAX_SCALE = 4;
+
+    const viewport = document.getElementById("viewport");
+    const stage = document.getElementById("stage");
+    const mapImg = document.getElementById("mapImg");
+    const pinsLayer = document.getElementById("pins");
+
+    let scale = 1;
+    let minScale = 1;
+    let tx = 0;
+    let ty = 0;
+
+    const pointers = new Map();
+    let lastPinchDist = null;
+
+    function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+    function viewportSize(){
+      const r = viewport.getBoundingClientRect();
+      return { vw: r.width, vh: r.height };
+    }
+
+    function clampPan(){
+      const { vw, vh } = viewportSize();
+      const scaledW = MAP_W * scale;
+      const scaledH = MAP_H * scale;
+
+      const minTx = Math.min(0, vw - scaledW);
+      const minTy = Math.min(0, vh - scaledH);
+      const maxTx = 0;
+      const maxTy = 0;
+
+      tx = clamp(tx, minTx, maxTx);
+      ty = clamp(ty, minTy, maxTy);
+    }
+
+    function applyTransform(){
+      clampPan();
+      stage.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+      document.documentElement.style.setProperty("--pinScale", String(1/scale));
+    }
+
+    function setScaleAround(newScale, cx, cy){
+      const oldScale = scale;
+      scale = clamp(newScale, minScale, MAX_SCALE);
+
+      const k = scale / oldScale;
+      tx = cx - (cx - tx) * k;
+      ty = cy - (cy - ty) * k;
+
+      applyTransform();
+    }
+
+    // Capital centrada (porcentaje del mapa, estable aunque cambie tamaño)
+    function centerOnCapital(){
+      const capital = { x: 0.55 * MAP_W, y: 0.52 * MAP_H };
+      const { vw, vh } = viewportSize();
+      tx = (vw * 0.5) - (capital.x * scale);
+      ty = (vh * 0.5) - (capital.y * scale);
+      applyTransform();
+    }
+
+    async function loadPins(){
+      const res = await fetch("data/pins.json", { cache: "no-store" });
+      const pins = await res.json();
+
+      pinsLayer.innerHTML = "";
+      for (const p of pins){
+        const a = document.createElement("a");
+        a.className = "pin";
+        a.href = p.href;
+        a.title = p.title || p.id;
+        a.setAttribute("aria-label", p.title || p.id);
+
+        a.style.left = p.x + "%";
+        a.style.top  = p.y + "%";
+
+        const tip = document.createElement("span");
+        tip.className = "tip";
+        a.appendChild(tip);
+
+        a.addEventListener("pointerdown", (e) => { e.stopPropagation(); }, { passive: true });
+        pinsLayer.appendChild(a);
+      }
+    }
+
+    // Gestos
+    viewport.addEventListener("pointerdown", (e) => {
+      viewport.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pointers.size === 2){
+        const pts = Array.from(pointers.values());
+        lastPinchDist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+      }
+    });
+
+    viewport.addEventListener("pointermove", (e) => {
+      if (!pointers.has(e.pointerId)) return;
+
+      const prev = pointers.get(e.pointerId);
+      const curr = { x: e.clientX, y: e.clientY };
+      pointers.set(e.pointerId, curr);
+
+      if (pointers.size === 1){
+        tx += (curr.x - prev.x);
+        ty += (curr.y - prev.y);
+        applyTransform();
+        return;
+      }
+
+      if (pointers.size === 2){
+        const pts = Array.from(pointers.values());
+        const dist = Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+        const center = { x: (pts[0].x + pts[1].x)/2, y: (pts[0].y + pts[1].y)/2 };
+
+        if (lastPinchDist && dist > 0){
+          const factor = dist / lastPinchDist;
+          setScaleAround(scale * factor, center.x, center.y);
+        }
+        lastPinchDist = dist;
+      }
+    });
+
+    function endPointer(e){
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) lastPinchDist = null;
+    }
+    viewport.addEventListener("pointerup", endPointer);
+    viewport.addEventListener("pointercancel", endPointer);
+
+    viewport.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const zoomStep = (e.deltaY < 0) ? 1.08 : 1/1.08;
+      setScaleAround(scale * zoomStep, e.clientX, e.clientY);
+    }, { passive: false });
+
+    document.getElementById("btnReset").addEventListener("click", () => {
+      scale = minScale;
+      applyTransform();
+      centerOnCapital();
+    });
+    document.getElementById("btnZoomIn").addEventListener("click", () => {
+      const { vw, vh } = viewportSize();
+      setScaleAround(scale * 1.15, vw/2, vh/2);
+    });
+    document.getElementById("btnZoomOut").addEventListener("click", () => {
+      const { vw, vh } = viewportSize();
+      setScaleAround(scale / 1.15, vw/2, vh/2);
+    });
+
+    function computeMinScale(){
+      const { vw, vh } = viewportSize();
+      const s = Math.max(vw / MAP_W, vh / MAP_H);
+      minScale = clamp(s, 0.5, 3);
+      if (scale < minScale) scale = minScale;
+      applyTransform();
+    }
+
+    window.addEventListener("resize", () => {
+      computeMinScale();
+      centerOnCapital();
+    });
+
+    async function init(){
+      // Espera a que el mapa tenga tamaño real
+      await new Promise((resolve, reject) => {
+        if (mapImg.complete && mapImg.naturalWidth) return resolve();
+        mapImg.addEventListener("load", resolve, { once: true });
+        mapImg.addEventListener("error", reject, { once: true });
+      });
+
+      MAP_W = mapImg.naturalWidth;
+      MAP_H = mapImg.naturalHeight;
+
+      // Ajusta el tamaño de las capas al PNG real
+      mapImg.style.width = MAP_W + "px";
+      mapImg.style.height = MAP_H + "px";
+      pinsLayer.style.width = MAP_W + "px";
+      pinsLayer.style.height = MAP_H + "px";
+
+      computeMinScale();
+      await loadPins();
+      centerOnCapital();
+      applyTransform();
+    }
+
+    init();
+  </script>
+
+  <!-- Registro Service Worker -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js");
+      });
+    }
+  </script>
+</body>
+</html>

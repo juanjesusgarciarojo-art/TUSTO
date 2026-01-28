@@ -1,0 +1,13 @@
+[
+  { "id": "h01", "title": "Plaza del Mercado",       "x": 55.0, "y": 56.0, "href": "historias/h01/index.html" },
+  { "id": "h02", "title": "Biblioteca de la Muralla", "x": 52.0, "y": 49.0, "href": "historias/h02/index.html" },
+  { "id": "h03", "title": "Torre del Reloj",         "x": 58.0, "y": 50.0, "href": "historias/h01/index.html" },
+
+  { "id": "h04", "title": "Faro del Pez-Linterna",   "x": 18.0, "y": 35.0, "href": "historias/h02/index.html" },
+  { "id": "h05", "title": "Puente de los Saludos",   "x": 40.0, "y": 58.0, "href": "historias/h01/index.html" },
+  { "id": "h06", "title": "Claro del Unicornio",     "x": 58.0, "y": 28.0, "href": "historias/h02/index.html" },
+  { "id": "h07", "title": "Lago Espejito",           "x": 62.0, "y": 46.0, "href": "historias/h01/index.html" },
+  { "id": "h08", "title": "Gruta del Eco Amable",    "x": 78.0, "y": 64.0, "href": "historias/h02/index.html" },
+  { "id": "h09", "title": "Molino de las Praderas",  "x": 56.0, "y": 82.0, "href": "historias/h01/index.html" },
+  { "id": "h10", "title": "Isla Caracola Mayor",     "x": 86.0, "y": 18.0, "href": "historias/h02/index.html" }
+]

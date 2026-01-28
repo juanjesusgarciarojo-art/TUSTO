@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+  <title>Tusto · H02 · Biblioteca de la Muralla</title>
+
+  <style>
+    :root{
+      --bg: #e8f5ff;
+      --card: rgba(255,255,255,.78);
+      --ink: #1f2328;
+      --bar: #141210;
+      --btn: rgba(255,255,255,.14);
+      --btnHover: rgba(255,255,255,.22);
+    }
+
+    html, body{ height:100%; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1200px 800px at 25% 15%, #ffffff 0%, var(--bg) 55%, #cfefff 100%);
+      color: var(--ink);
+    }
+
+    header{
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bar);
+      color: #fff;
+      padding: 14px 14px calc(14px + env(safe-area-inset-top));
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      box-shadow: 0 10px 24px rgba(0,0,0,.25);
+    }
+
+    header a{
+      color:#fff;
+      text-decoration:none;
+      background: var(--btn);
+      padding: 10px 12px;
+      border-radius: 12px;
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      font-weight: 600;
+      -webkit-tap-highlight-color: transparent;
+    }
+    header a:hover{ background: var(--btnHover); }
+
+    header .title{
+      display:flex;
+      flex-direction:column;
+      line-height: 1.1;
+    }
+    header .title strong{ font-size: 16px; }
+    header .title span{ font-size: 13px; opacity: .8; }
+
+    main{
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 18px 14px 40px;
+    }
+
+    .card{
+      background: var(--card);
+      border: 1px solid rgba(0,0,0,.08);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 12px 30px rgba(0,0,0,.10);
+      backdrop-filter: blur(6px);
+    }
+
+    .card h1{
+      margin: 0 0 8px 0;
+      font-size: 22px;
+    }
+
+    .meta{
+      margin: 0 0 14px 0;
+      font-size: 14px;
+      opacity: .85;
+    }
+
+    .demo{
+      margin-top: 14px;
+      display:grid;
+      gap: 12px;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.06);
+      border: 1px solid rgba(0,0,0,.06);
+      font-size: 14px;
+      width: fit-content;
+    }
+
+    .btnRow{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    button{
+      border:0;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-weight: 700;
+      cursor:pointer;
+      background: #2c7be5;
+      color: white;
+      box-shadow: 0 10px 24px rgba(44,123,229,.25);
+    }
+    button.secondary{
+      background: rgba(0,0,0,.08);
+      color: var(--ink);
+      box-shadow: none;
+    }
+    button:active{ transform: translateY(1px); }
+
+    .note{
+      font-size: 13px;
+      opacity: .8;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <a href="../../index.html" aria-label="Volver al mapa">← Volver</a>
+    <div class="title">
+      <strong>H02 · Biblioteca de la Muralla (demo)</strong>
+      <span>Prueba de página independiente</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="card">
+      <h1>La Biblioteca de la Muralla</h1>
+      <p class="meta">Objetivo educativo (ejemplo): curiosidad, gusto por aprender y cuidado de los libros.</p>
+
+      <div class="demo">
+        <div class="pill">✅ Si estás viendo esto, la ruta <b>historias/h02/index.html</b> funciona.</div>
+        <div class="pill">🔗 El botón “Volver” debería devolverte al mapa.</div>
+
+        <div class="btnRow">
+          <button id="testBtn" type="button">Probar interacción</button>
+          <button class="secondary" type="button" onclick="location.href='../../index.html'">Volver al mapa</button>
+        </div>
+
+        <div class="note" id="note"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const note = document.getElementById("note");
+    document.getElementById("testBtn").addEventListener("click", () => {
+      note.textContent = "Perfecto: JavaScript funciona en H02. Aquí iría tu historia interactiva.";
+    });
+  </script>
+</body>
+</html>
